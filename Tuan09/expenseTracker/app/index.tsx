@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, StatusBar, FlatList, TouchableOpacity, Alert, TextInput } from 'react-native';
+import { StyleSheet, Text, View, StatusBar, FlatList, TouchableOpacity, Alert, TextInput, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import TransactionItem from '../components/TransactionItem';
@@ -17,6 +17,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
 
   // Khởi tạo database khi app chạy
   useEffect(() => {
@@ -44,6 +45,14 @@ export default function HomeScreen() {
       const data = getAllTransactions();
       setTransactions(data as Transaction[]);
     }
+  };
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadTransactions();
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1000);
   };
 
   // Tính toán tổng thu, tổng chi
@@ -196,6 +205,14 @@ export default function HomeScreen() {
           )}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={['#4CAF50']}
+              tintColor="#4CAF50"
+            />
+          }
           ListEmptyComponent={
             <Text style={styles.emptyText}>
               {searchQuery ? 'Không tìm thấy kết quả phù hợp' : 'Chưa có giao dịch nào'}

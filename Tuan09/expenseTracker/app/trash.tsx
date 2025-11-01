@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, StatusBar, FlatList, TouchableOpacity, Alert, TextInput } from 'react-native';
+import { StyleSheet, Text, View, StatusBar, FlatList, TouchableOpacity, Alert, TextInput, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import TransactionItem from '../components/TransactionItem';
@@ -17,6 +17,7 @@ export default function TrashScreen() {
   const router = useRouter();
   const [deletedTransactions, setDeletedTransactions] = useState<Transaction[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
 
   // Reload khi focus vào màn hình
   useFocusEffect(
@@ -38,6 +39,14 @@ export default function TrashScreen() {
       const data = getDeletedTransactions();
       setDeletedTransactions(data as Transaction[]);
     }
+  };
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadDeletedTransactions();
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1000);
   };
 
   const handleItemLongPress = (id: number) => {
@@ -130,6 +139,14 @@ export default function TrashScreen() {
           )}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={['#F44336']}
+              tintColor="#F44336"
+            />
+          }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyIcon}>🗑️</Text>
