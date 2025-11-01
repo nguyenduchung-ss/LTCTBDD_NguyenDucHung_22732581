@@ -1,0 +1,215 @@
+import React, { useState } from 'react';
+import { StyleSheet, Text, View, StatusBar, FlatList, TouchableOpacity, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter, useFocusEffect } from 'expo-router';
+import TransactionItem from '../components/TransactionItem';
+import { getDeletedTransactions, restoreTransaction } from '../database/db';
+
+interface Transaction {
+  id: number;
+  title: string;
+  amount: number;
+  createdAt: string;
+  type: 'Thu' | 'Chi';
+}
+
+export default function TrashScreen() {
+  const router = useRouter();
+  const [deletedTransactions, setDeletedTransactions] = useState<Transaction[]>([]);
+
+  // Reload khi focus vào màn hình
+  useFocusEffect(
+    React.useCallback(() => {
+      loadDeletedTransactions();
+    }, [])
+  );
+
+  const loadDeletedTransactions = () => {
+    const data = getDeletedTransactions();
+    setDeletedTransactions(data as Transaction[]);
+  };
+
+  const handleItemLongPress = (id: number) => {
+    Alert.alert(
+      'Khôi phục giao dịch',
+      'Bạn có muốn khôi phục giao dịch này?',
+      [
+        {
+          text: 'Hủy',
+          style: 'cancel',
+        },
+        {
+          text: 'Khôi phục',
+          onPress: () => {
+            const success = restoreTransaction(id);
+            if (success) {
+              Alert.alert('Thành công', 'Đã khôi phục giao dịch');
+              loadDeletedTransactions();
+            } else {
+              Alert.alert('Lỗi', 'Không thể khôi phục giao dịch');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#F44336" />
+      
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Text style={styles.backButtonText}>← Quay lại</Text>
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Thùng Rác</Text>
+        <View style={styles.placeholder} />
+      </View>
+
+      {/* Info Box */}
+      <View style={styles.infoBox}>
+        <Text style={styles.infoText}>
+          🗑️ Chạm giữ vào giao dịch để khôi phục
+        </Text>
+      </View>
+
+      {/* Deleted Transactions List */}
+      <View style={styles.listContainer}>
+        <Text style={styles.sectionTitle}>
+          Giao dịch đã xóa ({deletedTransactions.length})
+        </Text>
+        
+        <FlatList
+          data={deletedTransactions}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={({ item }) => (
+            <View style={styles.itemWrapper}>
+              <TransactionItem
+                id={item.id}
+                title={item.title}
+                amount={item.amount}
+                createdAt={item.createdAt}
+                type={item.type}
+                onLongPress={() => handleItemLongPress(item.id)}
+              />
+              <View style={styles.deletedBadge}>
+                <Text style={styles.deletedBadgeText}>Đã xóa</Text>
+              </View>
+            </View>
+          )}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyIcon}>🗑️</Text>
+              <Text style={styles.emptyText}>Thùng rác trống</Text>
+              <Text style={styles.emptySubText}>
+                Các giao dịch đã xóa sẽ xuất hiện ở đây
+              </Text>
+            </View>
+          }
+        />
+      </View>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F44336',
+    padding: 20,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  backButton: {
+    padding: 5,
+  },
+  backButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#ffffff',
+  },
+  placeholder: {
+    width: 70,
+  },
+  infoBox: {
+    backgroundColor: '#FFEBEE',
+    padding: 15,
+    marginHorizontal: 15,
+    marginTop: 15,
+    borderRadius: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#F44336',
+  },
+  infoText: {
+    color: '#C62828',
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  listContainer: {
+    flex: 1,
+    paddingTop: 15,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 10,
+    paddingHorizontal: 15,
+  },
+  itemWrapper: {
+    position: 'relative',
+  },
+  deletedBadge: {
+    position: 'absolute',
+    top: 10,
+    right: 25,
+    backgroundColor: '#F44336',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  deletedBadgeText: {
+    color: '#ffffff',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  listContent: {
+    paddingBottom: 20,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  emptyIcon: {
+    fontSize: 64,
+    marginBottom: 16,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#666',
+    marginBottom: 8,
+  },
+  emptySubText: {
+    fontSize: 14,
+    color: '#999',
+    textAlign: 'center',
+  },
+});

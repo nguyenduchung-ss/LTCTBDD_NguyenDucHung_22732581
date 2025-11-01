@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, StatusBar, FlatList, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View, StatusBar, FlatList, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import TransactionItem from '../components/TransactionItem';
-import { initDatabase, getAllTransactions } from '../database/db';
+import { initDatabase, getAllTransactions, deleteTransaction } from '../database/db';
 
 interface Transaction {
   id: number;
@@ -70,8 +70,29 @@ export default function HomeScreen() {
   };
 
   const handleItemLongPress = (id: number) => {
-    console.log('Long pressed item:', id);
-    // Sẽ xử lý xóa ở câu 5
+    Alert.alert(
+      'Xác nhận xóa',
+      'Bạn có chắc chắn muốn xóa giao dịch này?',
+      [
+        {
+          text: 'Hủy',
+          style: 'cancel',
+        },
+        {
+          text: 'Xóa',
+          style: 'destructive',
+          onPress: () => {
+            const success = deleteTransaction(id);
+            if (success) {
+              Alert.alert('Thành công', 'Đã xóa giao dịch');
+              loadTransactions();
+            } else {
+              Alert.alert('Lỗi', 'Không thể xóa giao dịch');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleAddPress = () => {
@@ -117,9 +138,14 @@ export default function HomeScreen() {
       <View style={styles.transactionListContainer}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Giao dịch gần đây</Text>
-          <TouchableOpacity style={styles.addButton} onPress={handleAddPress}>
-            <Text style={styles.addButtonText}>+ Add</Text>
-          </TouchableOpacity>
+          <View style={styles.buttonGroup}>
+            <TouchableOpacity style={styles.trashButton} onPress={() => router.push('/trash')}>
+              <Text style={styles.trashButtonText}>🗑️</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.addButton} onPress={handleAddPress}>
+              <Text style={styles.addButtonText}>+ Add</Text>
+            </TouchableOpacity>
+          </View>
         </View>
         
         <FlatList
@@ -244,6 +270,19 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
+  },
+  buttonGroup: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  trashButton: {
+    backgroundColor: '#F44336',
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  trashButtonText: {
+    fontSize: 16,
   },
   addButton: {
     backgroundColor: '#4CAF50',
