@@ -51,8 +51,8 @@ export default function TrashScreen() {
 
   const handleItemLongPress = (id: number) => {
     Alert.alert(
-      'Khôi phục giao dịch',
-      'Bạn có muốn khôi phục giao dịch này?',
+      '🔄 Khôi phục giao dịch',
+      'Giao dịch sẽ được chuyển về danh sách chính. Bạn có muốn khôi phục?',
       [
         {
           text: 'Hủy',
@@ -60,13 +60,14 @@ export default function TrashScreen() {
         },
         {
           text: 'Khôi phục',
+          style: 'default',
           onPress: () => {
             const success = restoreTransaction(id);
             if (success) {
-              Alert.alert('Thành công', 'Đã khôi phục giao dịch');
+              Alert.alert('✅ Thành công', 'Đã khôi phục giao dịch về danh sách chính');
               loadDeletedTransactions();
             } else {
-              Alert.alert('Lỗi', 'Không thể khôi phục giao dịch');
+              Alert.alert('❌ Lỗi', 'Không thể khôi phục giao dịch');
             }
           },
         },
@@ -90,7 +91,10 @@ export default function TrashScreen() {
       {/* Info Box */}
       <View style={styles.infoBox}>
         <Text style={styles.infoText}>
-          🗑️ Chạm giữ vào giao dịch để khôi phục
+          🔄 Chạm giữ vào giao dịch để khôi phục
+        </Text>
+        <Text style={styles.infoSubText}>
+          Giao dịch sẽ được chuyển về danh sách chính
         </Text>
       </View>
 
@@ -209,6 +213,14 @@ const styles = StyleSheet.create({
     color: '#C62828',
     fontSize: 14,
     textAlign: 'center',
+    fontWeight: '600',
+  },
+  infoSubText: {
+    color: '#C62828',
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 5,
+    opacity: 0.8,
   },
   searchContainer: {
     flexDirection: 'row',

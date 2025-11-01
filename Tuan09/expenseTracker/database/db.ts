@@ -90,6 +90,7 @@ export const getDeletedTransactions = () => {
 };
 
 // Khôi phục giao dịch
+// Khôi phục giao dịch
 export const restoreTransaction = (id: number) => {
   try {
     const result = db.runSync(
