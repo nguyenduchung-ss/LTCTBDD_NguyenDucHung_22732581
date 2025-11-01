@@ -62,8 +62,11 @@ export default function HomeScreen() {
   };
 
   const handleItemPress = (id: number) => {
-    console.log('Pressed item:', id);
-    // Sẽ navigate sang màn hình chi tiết ở câu 4
+    // Navigate sang màn hình edit với id
+    router.push({
+      pathname: '/edit',
+      params: { id: id.toString() }
+    });
   };
 
   const handleItemLongPress = (id: number) => {
