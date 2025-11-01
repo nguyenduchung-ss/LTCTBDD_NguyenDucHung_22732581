@@ -1,49 +1,39 @@
-import React, { useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, StatusBar, FlatList } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, Text, View, StatusBar, FlatList, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter, useFocusEffect } from 'expo-router';
 import TransactionItem from '../components/TransactionItem';
+import { initDatabase, getAllTransactions } from '../database/db';
 
-// Dữ liệu mẫu để test
-const SAMPLE_DATA = [
-  {
-    id: 1,
-    title: 'Lương tháng 10',
-    amount: 15000000,
-    createdAt: '2024-10-01T08:00:00',
-    type: 'Thu' as const,
-  },
-  {
-    id: 2,
-    title: 'Mua đồ ăn',
-    amount: 150000,
-    createdAt: '2024-10-05T12:30:00',
-    type: 'Chi' as const,
-  },
-  {
-    id: 3,
-    title: 'Tiền thưởng',
-    amount: 5000000,
-    createdAt: '2024-10-10T14:00:00',
-    type: 'Thu' as const,
-  },
-  {
-    id: 4,
-    title: 'Tiền điện nước',
-    amount: 500000,
-    createdAt: '2024-10-15T09:00:00',
-    type: 'Chi' as const,
-  },
-  {
-    id: 5,
-    title: 'Mua xăng',
-    amount: 300000,
-    createdAt: '2024-10-20T16:45:00',
-    type: 'Chi' as const,
-  },
-];
+interface Transaction {
+  id: number;
+  title: string;
+  amount: number;
+  createdAt: string;
+  type: 'Thu' | 'Chi';
+}
 
 export default function HomeScreen() {
-  const [transactions, setTransactions] = useState(SAMPLE_DATA);
+  const router = useRouter();
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+
+  // Khởi tạo database khi app chạy
+  useEffect(() => {
+    initDatabase();
+    loadTransactions();
+  }, []);
+
+  // Reload khi quay lại màn hình
+  useFocusEffect(
+    React.useCallback(() => {
+      loadTransactions();
+    }, [])
+  );
+
+  const loadTransactions = () => {
+    const data = getAllTransactions();
+    setTransactions(data as Transaction[]);
+  };
 
   // Tính toán tổng thu, tổng chi
   const calculateSummary = () => {
@@ -79,6 +69,10 @@ export default function HomeScreen() {
   const handleItemLongPress = (id: number) => {
     console.log('Long pressed item:', id);
     // Sẽ xử lý xóa ở câu 5
+  };
+
+  const handleAddPress = () => {
+    router.push('/add');
   };
 
   return (
@@ -118,7 +112,12 @@ export default function HomeScreen() {
 
       {/* Transaction List */}
       <View style={styles.transactionListContainer}>
-        <Text style={styles.sectionTitle}>Giao dịch gần đây</Text>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Giao dịch gần đây</Text>
+          <TouchableOpacity style={styles.addButton} onPress={handleAddPress}>
+            <Text style={styles.addButtonText}>+ Add</Text>
+          </TouchableOpacity>
+        </View>
         
         <FlatList
           data={transactions}
@@ -231,12 +230,28 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingTop: 15,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 15,
+    marginBottom: 10,
+  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 10,
-    paddingHorizontal: 15,
+  },
+  addButton: {
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  addButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   listContent: {
     paddingBottom: 20,
