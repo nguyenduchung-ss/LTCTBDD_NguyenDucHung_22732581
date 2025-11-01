@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
-import { StyleSheet, Text, View, StatusBar, FlatList, TouchableOpacity, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, Text, View, StatusBar, FlatList, TouchableOpacity, Alert, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import TransactionItem from '../components/TransactionItem';
-import { getDeletedTransactions, restoreTransaction } from '../database/db';
+import { getDeletedTransactions, restoreTransaction, searchDeletedTransactions } from '../database/db';
 
 interface Transaction {
   id: number;
@@ -16,6 +16,7 @@ interface Transaction {
 export default function TrashScreen() {
   const router = useRouter();
   const [deletedTransactions, setDeletedTransactions] = useState<Transaction[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Reload khi focus vào màn hình
   useFocusEffect(
@@ -24,9 +25,19 @@ export default function TrashScreen() {
     }, [])
   );
 
+  // Search khi searchQuery thay đổi
+  useEffect(() => {
+    loadDeletedTransactions();
+  }, [searchQuery]);
+
   const loadDeletedTransactions = () => {
-    const data = getDeletedTransactions();
-    setDeletedTransactions(data as Transaction[]);
+    if (searchQuery.trim()) {
+      const data = searchDeletedTransactions(searchQuery.trim());
+      setDeletedTransactions(data as Transaction[]);
+    } else {
+      const data = getDeletedTransactions();
+      setDeletedTransactions(data as Transaction[]);
+    }
   };
 
   const handleItemLongPress = (id: number) => {
@@ -74,10 +85,29 @@ export default function TrashScreen() {
         </Text>
       </View>
 
+      {/* Search Bar */}
+      <View style={styles.searchContainer}>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="🔍 Tìm kiếm trong thùng rác..."
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          placeholderTextColor="#999"
+        />
+        {searchQuery.length > 0 && (
+          <TouchableOpacity
+            style={styles.clearButton}
+            onPress={() => setSearchQuery('')}
+          >
+            <Text style={styles.clearButtonText}>✕</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
       {/* Deleted Transactions List */}
       <View style={styles.listContainer}>
         <Text style={styles.sectionTitle}>
-          Giao dịch đã xóa ({deletedTransactions.length})
+          {searchQuery ? `Kết quả tìm kiếm (${deletedTransactions.length})` : `Giao dịch đã xóa (${deletedTransactions.length})`}
         </Text>
         
         <FlatList
@@ -103,9 +133,11 @@ export default function TrashScreen() {
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyIcon}>🗑️</Text>
-              <Text style={styles.emptyText}>Thùng rác trống</Text>
+              <Text style={styles.emptyText}>
+                {searchQuery ? 'Không tìm thấy kết quả phù hợp' : 'Thùng rác trống'}
+              </Text>
               <Text style={styles.emptySubText}>
-                Các giao dịch đã xóa sẽ xuất hiện ở đây
+                {searchQuery ? 'Thử tìm kiếm với từ khóa khác' : 'Các giao dịch đã xóa sẽ xuất hiện ở đây'}
               </Text>
             </View>
           }
@@ -160,6 +192,36 @@ const styles = StyleSheet.create({
     color: '#C62828',
     fontSize: 14,
     textAlign: 'center',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 15,
+    marginTop: 15,
+    marginBottom: 10,
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    paddingHorizontal: 15,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+  },
+  searchInput: {
+    flex: 1,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#333',
+  },
+  clearButton: {
+    padding: 5,
+    marginLeft: 10,
+  },
+  clearButtonText: {
+    fontSize: 20,
+    color: '#999',
+    fontWeight: 'bold',
   },
   listContainer: {
     flex: 1,

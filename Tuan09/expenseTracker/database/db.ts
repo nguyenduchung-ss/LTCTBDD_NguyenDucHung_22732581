@@ -103,5 +103,32 @@ export const restoreTransaction = (id: number) => {
     return false;
   }
 };
+// Tìm kiếm giao dịch
+export const searchTransactions = (keyword: string) => {
+  try {
+    const result = db.getAllSync(
+      'SELECT * FROM transactions WHERE isDeleted = 0 AND title LIKE ? ORDER BY createdAt DESC',
+      [`%${keyword}%`]
+    );
+    return result;
+  } catch (error) {
+    console.error('Error searching transactions:', error);
+    return [];
+  }
+};
+
+// Tìm kiếm giao dịch đã xóa
+export const searchDeletedTransactions = (keyword: string) => {
+  try {
+    const result = db.getAllSync(
+      'SELECT * FROM transactions WHERE isDeleted = 1 AND title LIKE ? ORDER BY createdAt DESC',
+      [`%${keyword}%`]
+    );
+    return result;
+  } catch (error) {
+    console.error('Error searching deleted transactions:', error);
+    return [];
+  }
+};
 
 export default db;

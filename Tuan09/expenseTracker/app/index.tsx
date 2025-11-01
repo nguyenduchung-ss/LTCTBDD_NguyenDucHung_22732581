@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, StatusBar, FlatList, TouchableOpacity, Alert } from 'react-native';
+import { StyleSheet, Text, View, StatusBar, FlatList, TouchableOpacity, Alert, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import TransactionItem from '../components/TransactionItem';
-import { initDatabase, getAllTransactions, deleteTransaction } from '../database/db';
+import { initDatabase, getAllTransactions, deleteTransaction, searchTransactions } from '../database/db';
 
 interface Transaction {
   id: number;
@@ -16,6 +16,7 @@ interface Transaction {
 export default function HomeScreen() {
   const router = useRouter();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Khởi tạo database khi app chạy
   useEffect(() => {
@@ -30,9 +31,19 @@ export default function HomeScreen() {
     }, [])
   );
 
+  // Search khi searchQuery thay đổi
+  useEffect(() => {
+    loadTransactions();
+  }, [searchQuery]);
+
   const loadTransactions = () => {
-    const data = getAllTransactions();
-    setTransactions(data as Transaction[]);
+    if (searchQuery.trim()) {
+      const data = searchTransactions(searchQuery.trim());
+      setTransactions(data as Transaction[]);
+    } else {
+      const data = getAllTransactions();
+      setTransactions(data as Transaction[]);
+    }
   };
 
   // Tính toán tổng thu, tổng chi
@@ -134,10 +145,31 @@ export default function HomeScreen() {
         </Text>
       </View>
 
+      {/* Search Bar */}
+      <View style={styles.searchContainer}>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="🔍 Tìm kiếm giao dịch..."
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          placeholderTextColor="#999"
+        />
+        {searchQuery.length > 0 && (
+          <TouchableOpacity
+            style={styles.clearButton}
+            onPress={() => setSearchQuery('')}
+          >
+            <Text style={styles.clearButtonText}>✕</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
       {/* Transaction List */}
       <View style={styles.transactionListContainer}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Giao dịch gần đây</Text>
+          <Text style={styles.sectionTitle}>
+            {searchQuery ? `Kết quả tìm kiếm (${transactions.length})` : 'Giao dịch gần đây'}
+          </Text>
           <View style={styles.buttonGroup}>
             <TouchableOpacity style={styles.trashButton} onPress={() => router.push('/trash')}>
               <Text style={styles.trashButtonText}>🗑️</Text>
@@ -165,7 +197,9 @@ export default function HomeScreen() {
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
-            <Text style={styles.emptyText}>Chưa có giao dịch nào</Text>
+            <Text style={styles.emptyText}>
+              {searchQuery ? 'Không tìm thấy kết quả phù hợp' : 'Chưa có giao dịch nào'}
+            </Text>
           }
         />
       </View>
@@ -254,6 +288,35 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: 'bold',
     color: '#ffffff',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 15,
+    marginBottom: 15,
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    paddingHorizontal: 15,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+  },
+  searchInput: {
+    flex: 1,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#333',
+  },
+  clearButton: {
+    padding: 5,
+    marginLeft: 10,
+  },
+  clearButtonText: {
+    fontSize: 20,
+    color: '#999',
+    fontWeight: 'bold',
   },
   transactionListContainer: {
     flex: 1,
