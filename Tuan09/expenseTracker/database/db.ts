@@ -147,5 +147,25 @@ export const filterTransactionsByType = (type: 'Thu' | 'Chi' | 'All') => {
     return [];
   }
 };
+// Thống kê thu chi theo tháng
+export const getMonthlyStatistics = () => {
+  try {
+    const result = db.getAllSync(`
+      SELECT 
+        strftime('%Y-%m', createdAt) as month,
+        type,
+        SUM(amount) as total
+      FROM transactions 
+      WHERE isDeleted = 0
+      GROUP BY month, type
+      ORDER BY month DESC
+      LIMIT 12
+    `);
+    return result;
+  } catch (error) {
+    console.error('Error getting monthly statistics:', error);
+    return [];
+  }
+};
 
 export default db;

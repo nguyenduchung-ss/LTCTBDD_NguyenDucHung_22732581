@@ -1,24 +1,40 @@
-import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, StatusBar, FlatList, TouchableOpacity, Alert, TextInput, RefreshControl } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useFocusEffect } from 'expo-router';
-import TransactionItem from '../components/TransactionItem';
-import { initDatabase, getAllTransactions, deleteTransaction, searchTransactions, filterTransactionsByType } from '../database/db';
+import React, { useState, useEffect } from "react";
+import {
+  StyleSheet,
+  Text,
+  View,
+  StatusBar,
+  FlatList,
+  TouchableOpacity,
+  Alert,
+  TextInput,
+  RefreshControl,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter, useFocusEffect } from "expo-router";
+import TransactionItem from "../components/TransactionItem";
+import {
+  initDatabase,
+  getAllTransactions,
+  deleteTransaction,
+  searchTransactions,
+  filterTransactionsByType,
+} from "../database/db";
 
 interface Transaction {
   id: number;
   title: string;
   amount: number;
   createdAt: string;
-  type: 'Thu' | 'Chi';
+  type: "Thu" | "Chi";
 }
 
 export default function HomeScreen() {
   const router = useRouter();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [refreshing, setRefreshing] = useState(false);
-  const [filterType, setFilterType] = useState<'All' | 'Thu' | 'Chi'>('All');
+  const [filterType, setFilterType] = useState<"All" | "Thu" | "Chi">("All");
 
   // Khởi tạo database khi app chạy
   useEffect(() => {
@@ -47,10 +63,12 @@ export default function HomeScreen() {
     if (searchQuery.trim()) {
       const data = searchTransactions(searchQuery.trim());
       // Áp dụng filter sau khi search
-      if (filterType === 'All') {
+      if (filterType === "All") {
         setTransactions(data as Transaction[]);
       } else {
-        const filtered = (data as Transaction[]).filter(t => t.type === filterType);
+        const filtered = (data as Transaction[]).filter(
+          (t) => t.type === filterType
+        );
         setTransactions(filtered);
       }
     } else {
@@ -73,8 +91,8 @@ export default function HomeScreen() {
     let totalIncome = 0;
     let totalExpense = 0;
 
-    transactions.forEach(item => {
-      if (item.type === 'Thu') {
+    transactions.forEach((item) => {
+      if (item.type === "Thu") {
         totalIncome += item.amount;
       } else {
         totalExpense += item.amount;
@@ -91,51 +109,47 @@ export default function HomeScreen() {
   const summary = calculateSummary();
 
   const formatAmount = (value: number) => {
-    return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   };
 
   const handleItemPress = (id: number) => {
     // Navigate sang màn hình edit với id
     router.push({
-      pathname: '/edit',
-      params: { id: id.toString() }
+      pathname: "/edit",
+      params: { id: id.toString() },
     });
   };
 
   const handleItemLongPress = (id: number) => {
-    Alert.alert(
-      'Xác nhận xóa',
-      'Bạn có chắc chắn muốn xóa giao dịch này?',
-      [
-        {
-          text: 'Hủy',
-          style: 'cancel',
+    Alert.alert("Xác nhận xóa", "Bạn có chắc chắn muốn xóa giao dịch này?", [
+      {
+        text: "Hủy",
+        style: "cancel",
+      },
+      {
+        text: "Xóa",
+        style: "destructive",
+        onPress: () => {
+          const success = deleteTransaction(id);
+          if (success) {
+            Alert.alert("Thành công", "Đã xóa giao dịch");
+            loadTransactions();
+          } else {
+            Alert.alert("Lỗi", "Không thể xóa giao dịch");
+          }
         },
-        {
-          text: 'Xóa',
-          style: 'destructive',
-          onPress: () => {
-            const success = deleteTransaction(id);
-            if (success) {
-              Alert.alert('Thành công', 'Đã xóa giao dịch');
-              loadTransactions();
-            } else {
-              Alert.alert('Lỗi', 'Không thể xóa giao dịch');
-            }
-          },
-        },
-      ]
-    );
+      },
+    ]);
   };
 
   const handleAddPress = () => {
-    router.push('/add');
+    router.push("/add");
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#4CAF50" />
-      
+
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>EXPENSE TRACKER</Text>
@@ -150,7 +164,7 @@ export default function HomeScreen() {
             {formatAmount(summary.income)} đ
           </Text>
         </View>
-        
+
         <View style={styles.summaryCard}>
           <Text style={styles.summaryLabel}>Tổng Chi</Text>
           <Text style={[styles.summaryAmount, styles.expenseText]}>
@@ -179,7 +193,7 @@ export default function HomeScreen() {
         {searchQuery.length > 0 && (
           <TouchableOpacity
             style={styles.clearButton}
-            onPress={() => setSearchQuery('')}
+            onPress={() => setSearchQuery("")}
           >
             <Text style={styles.clearButtonText}>✕</Text>
           </TouchableOpacity>
@@ -189,28 +203,52 @@ export default function HomeScreen() {
       {/* Filter Bar */}
       <View style={styles.filterContainer}>
         <TouchableOpacity
-          style={[styles.filterButton, filterType === 'All' && styles.filterButtonActive]}
-          onPress={() => setFilterType('All')}
+          style={[
+            styles.filterButton,
+            filterType === "All" && styles.filterButtonActive,
+          ]}
+          onPress={() => setFilterType("All")}
         >
-          <Text style={[styles.filterButtonText, filterType === 'All' && styles.filterButtonTextActive]}>
+          <Text
+            style={[
+              styles.filterButtonText,
+              filterType === "All" && styles.filterButtonTextActive,
+            ]}
+          >
             Tất cả
           </Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity
-          style={[styles.filterButton, filterType === 'Thu' && styles.filterButtonActive]}
-          onPress={() => setFilterType('Thu')}
+          style={[
+            styles.filterButton,
+            filterType === "Thu" && styles.filterButtonActive,
+          ]}
+          onPress={() => setFilterType("Thu")}
         >
-          <Text style={[styles.filterButtonText, filterType === 'Thu' && styles.filterButtonTextActive]}>
+          <Text
+            style={[
+              styles.filterButtonText,
+              filterType === "Thu" && styles.filterButtonTextActive,
+            ]}
+          >
             Thu
           </Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity
-          style={[styles.filterButton, filterType === 'Chi' && styles.filterButtonActive]}
-          onPress={() => setFilterType('Chi')}
+          style={[
+            styles.filterButton,
+            filterType === "Chi" && styles.filterButtonActive,
+          ]}
+          onPress={() => setFilterType("Chi")}
         >
-          <Text style={[styles.filterButtonText, filterType === 'Chi' && styles.filterButtonTextActive]}>
+          <Text
+            style={[
+              styles.filterButtonText,
+              filterType === "Chi" && styles.filterButtonTextActive,
+            ]}
+          >
             Chi
           </Text>
         </TouchableOpacity>
@@ -218,28 +256,45 @@ export default function HomeScreen() {
 
       {/* Transaction List */}
       <View style={styles.transactionListContainer}>
-        <View style={styles.sectionHeader}>
+        <View style={styles.sectionHeaderWrapper}>
           <Text style={styles.sectionTitle}>
-            {searchQuery 
-              ? `Kết quả tìm kiếm (${transactions.length})` 
-              : filterType === 'All' 
-                ? 'Giao dịch gần đây' 
-                : `Giao dịch ${filterType} (${transactions.length})`
-            }
+            {searchQuery
+              ? `Kết quả tìm kiếm (${transactions.length})`
+              : filterType === "All"
+              ? "Giao dịch gần đây"
+              : `Giao dịch ${filterType} (${transactions.length})`}
           </Text>
-          <View style={styles.buttonGroup}>
-            <TouchableOpacity style={styles.syncButton} onPress={() => router.push('/sync' as any)}>
-              <Text style={styles.syncButtonText}>🔄</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.trashButton} onPress={() => router.push('/trash')}>
-              <Text style={styles.trashButtonText}>🗑️</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.addButton} onPress={handleAddPress}>
-              <Text style={styles.addButtonText}>+ Add</Text>
+
+          <View style={styles.buttonGroupWrapper}>
+            <View style={styles.buttonGroupRow}>
+              <TouchableOpacity
+                style={styles.statsButton}
+                onPress={() => router.push("/statistics")}
+              >
+                <Text style={styles.statsButtonText}>📊</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.syncButton}
+                onPress={() => router.push("/sync" as any)}
+              >
+                <Text style={styles.syncButtonText}>🔄</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.trashButton}
+                onPress={() => router.push("/trash")}
+              >
+                <Text style={styles.trashButtonText}>🗑️</Text>
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity
+              style={styles.addButtonFull}
+              onPress={handleAddPress}
+            >
+              <Text style={styles.addButtonText}>➕ Thêm mới</Text>
             </TouchableOpacity>
           </View>
         </View>
-        
+
         <FlatList
           data={transactions}
           keyExtractor={(item) => item.id.toString()}
@@ -260,13 +315,15 @@ export default function HomeScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              colors={['#4CAF50']}
+              colors={["#4CAF50"]}
               tintColor="#4CAF50"
             />
           }
           ListEmptyComponent={
             <Text style={styles.emptyText}>
-              {searchQuery ? 'Không tìm thấy kết quả phù hợp' : 'Chưa có giao dịch nào'}
+              {searchQuery
+                ? "Không tìm thấy kết quả phù hợp"
+                : "Chưa có giao dịch nào"}
             </Text>
           }
         />
@@ -278,95 +335,95 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: "#f5f5f5",
   },
   header: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: "#4CAF50",
     padding: 20,
     paddingBottom: 30,
     elevation: 4,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
   },
   headerTitle: {
     fontSize: 28,
-    fontWeight: 'bold',
-    color: '#ffffff',
+    fontWeight: "bold",
+    color: "#ffffff",
     letterSpacing: 1,
-    textAlign: 'center',
+    textAlign: "center",
   },
   headerSubtitle: {
     fontSize: 14,
-    color: '#ffffff',
-    textAlign: 'center',
+    color: "#ffffff",
+    textAlign: "center",
     marginTop: 5,
     opacity: 0.9,
   },
   summaryContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     padding: 15,
     gap: 15,
   },
   summaryCard: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: "#ffffff",
     padding: 20,
     borderRadius: 12,
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 2,
   },
   summaryLabel: {
     fontSize: 14,
-    color: '#666',
+    color: "#666",
     marginBottom: 8,
   },
   summaryAmount: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   incomeText: {
-    color: '#4CAF50',
+    color: "#4CAF50",
   },
   expenseText: {
-    color: '#F44336',
+    color: "#F44336",
   },
   balanceCard: {
-    backgroundColor: '#2196F3',
+    backgroundColor: "#2196F3",
     margin: 15,
     marginTop: 0,
     padding: 20,
     borderRadius: 12,
     elevation: 3,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
   },
   balanceLabel: {
     fontSize: 16,
-    color: '#ffffff',
+    color: "#ffffff",
     marginBottom: 8,
   },
   balanceAmount: {
     fontSize: 32,
-    fontWeight: 'bold',
-    color: '#ffffff',
+    fontWeight: "bold",
+    color: "#ffffff",
   },
   searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginHorizontal: 15,
     marginBottom: 15,
-    backgroundColor: '#ffffff',
+    backgroundColor: "#ffffff",
     borderRadius: 12,
     paddingHorizontal: 15,
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 2,
@@ -375,7 +432,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     fontSize: 16,
-    color: '#333',
+    color: "#333",
   },
   clearButton: {
     padding: 5,
@@ -383,11 +440,11 @@ const styles = StyleSheet.create({
   },
   clearButtonText: {
     fontSize: 20,
-    color: '#999',
-    fontWeight: 'bold',
+    color: "#999",
+    fontWeight: "bold",
   },
   filterContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     marginHorizontal: 15,
     marginBottom: 15,
     gap: 10,
@@ -397,78 +454,100 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 15,
     borderRadius: 20,
-    backgroundColor: '#ffffff',
-    alignItems: 'center',
+    backgroundColor: "#ffffff",
+    alignItems: "center",
     borderWidth: 2,
-    borderColor: '#ddd',
+    borderColor: "#ddd",
   },
   filterButtonActive: {
-    backgroundColor: '#4CAF50',
-    borderColor: '#4CAF50',
+    backgroundColor: "#4CAF50",
+    borderColor: "#4CAF50",
   },
   filterButtonText: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#666',
+    fontWeight: "600",
+    color: "#666",
   },
   filterButtonTextActive: {
-    color: '#ffffff',
+    color: "#ffffff",
   },
   transactionListContainer: {
     flex: 1,
     paddingTop: 15,
   },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  sectionHeaderWrapper: {
     paddingHorizontal: 15,
     marginBottom: 10,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
+    fontWeight: "bold",
+    color: "#333",
+    marginBottom: 10,
   },
-  buttonGroup: {
-    flexDirection: 'row',
-    gap: 10,
+  buttonGroupWrapper: {
+    gap: 8,
   },
-  syncButton: {
-    backgroundColor: '#9C27B0',
-    paddingHorizontal: 15,
+  buttonGroupRow: {
+    flexDirection: "row",
+    gap: 8,
+    justifyContent: "space-between",
+  },
+  statsButton: {
+    flex: 1,
+    backgroundColor: "#2196F3",
+    paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 20,
+    alignItems: "center",
+  },
+  statsButtonText: {
+    fontSize: 16,
+  },
+  syncButton: {
+    flex: 1,
+    backgroundColor: "#9C27B0",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    alignItems: "center",
   },
   syncButtonText: {
     fontSize: 16,
   },
   trashButton: {
-    backgroundColor: '#F44336',
-    paddingHorizontal: 15,
+    flex: 1,
+    backgroundColor: "#F44336",
+    paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 20,
+    alignItems: "center",
   },
   trashButtonText: {
     fontSize: 16,
   },
-  addButton: {
-    backgroundColor: '#4CAF50',
-    paddingHorizontal: 20,
-    paddingVertical: 8,
+  addButtonFull: {
+    backgroundColor: "#4CAF50",
+    paddingVertical: 10,
     borderRadius: 20,
+    alignItems: "center",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
   },
   addButtonText: {
-    color: '#ffffff',
+    color: "#ffffff",
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   listContent: {
     paddingBottom: 20,
   },
   emptyText: {
-    textAlign: 'center',
-    color: '#999',
+    textAlign: "center",
+    color: "#999",
     fontSize: 14,
     marginTop: 20,
   },
