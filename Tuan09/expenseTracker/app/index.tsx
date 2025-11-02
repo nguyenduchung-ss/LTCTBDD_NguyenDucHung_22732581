@@ -174,20 +174,23 @@ export default function HomeScreen() {
       </View>
 
       {/* Transaction List */}
-      <View style={styles.transactionListContainer}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>
-            {searchQuery ? `Kết quả tìm kiếm (${transactions.length})` : 'Giao dịch gần đây'}
-          </Text>
-          <View style={styles.buttonGroup}>
-            <TouchableOpacity style={styles.trashButton} onPress={() => router.push('/trash')}>
-              <Text style={styles.trashButtonText}>🗑️</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.addButton} onPress={handleAddPress}>
-              <Text style={styles.addButtonText}>+ Add</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+<View style={styles.transactionListContainer}>
+  <View style={styles.sectionHeader}>
+    <Text style={styles.sectionTitle}>
+      {searchQuery ? `Kết quả tìm kiếm (${transactions.length})` : 'Giao dịch gần đây'}
+    </Text>
+    <View style={styles.buttonGroup}>
+      <TouchableOpacity style={styles.syncButton} onPress={() => router.push('/sync')}>
+        <Text style={styles.syncButtonText}>🔄</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.trashButton} onPress={() => router.push('/trash')}>
+        <Text style={styles.trashButtonText}>🗑️</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.addButton} onPress={handleAddPress}>
+        <Text style={styles.addButtonText}>+ Add</Text>
+      </TouchableOpacity>
+    </View>
+  </View>
         
         <FlatList
           data={transactions}
@@ -383,5 +386,14 @@ const styles = StyleSheet.create({
     color: '#999',
     fontSize: 14,
     marginTop: 20,
+  },
+  syncButton: {
+    backgroundColor: '#9C27B0',
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  syncButtonText: {
+    fontSize: 16,
   },
 });
