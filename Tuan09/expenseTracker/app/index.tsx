@@ -3,7 +3,7 @@ import { StyleSheet, Text, View, StatusBar, FlatList, TouchableOpacity, Alert, T
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import TransactionItem from '../components/TransactionItem';
-import { initDatabase, getAllTransactions, deleteTransaction, searchTransactions } from '../database/db';
+import { initDatabase, getAllTransactions, deleteTransaction, searchTransactions, filterTransactionsByType } from '../database/db';
 
 interface Transaction {
   id: number;
@@ -18,6 +18,7 @@ export default function HomeScreen() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+  const [filterType, setFilterType] = useState<'All' | 'Thu' | 'Chi'>('All');
 
   // Khởi tạo database khi app chạy
   useEffect(() => {
@@ -37,12 +38,24 @@ export default function HomeScreen() {
     loadTransactions();
   }, [searchQuery]);
 
+  // Filter khi filterType thay đổi
+  useEffect(() => {
+    loadTransactions();
+  }, [filterType]);
+
   const loadTransactions = () => {
     if (searchQuery.trim()) {
       const data = searchTransactions(searchQuery.trim());
-      setTransactions(data as Transaction[]);
+      // Áp dụng filter sau khi search
+      if (filterType === 'All') {
+        setTransactions(data as Transaction[]);
+      } else {
+        const filtered = (data as Transaction[]).filter(t => t.type === filterType);
+        setTransactions(filtered);
+      }
     } else {
-      const data = getAllTransactions();
+      // Áp dụng filter
+      const data = filterTransactionsByType(filterType);
       setTransactions(data as Transaction[]);
     }
   };
@@ -173,24 +186,59 @@ export default function HomeScreen() {
         )}
       </View>
 
+      {/* Filter Bar */}
+      <View style={styles.filterContainer}>
+        <TouchableOpacity
+          style={[styles.filterButton, filterType === 'All' && styles.filterButtonActive]}
+          onPress={() => setFilterType('All')}
+        >
+          <Text style={[styles.filterButtonText, filterType === 'All' && styles.filterButtonTextActive]}>
+            Tất cả
+          </Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={[styles.filterButton, filterType === 'Thu' && styles.filterButtonActive]}
+          onPress={() => setFilterType('Thu')}
+        >
+          <Text style={[styles.filterButtonText, filterType === 'Thu' && styles.filterButtonTextActive]}>
+            Thu
+          </Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={[styles.filterButton, filterType === 'Chi' && styles.filterButtonActive]}
+          onPress={() => setFilterType('Chi')}
+        >
+          <Text style={[styles.filterButtonText, filterType === 'Chi' && styles.filterButtonTextActive]}>
+            Chi
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       {/* Transaction List */}
-<View style={styles.transactionListContainer}>
-  <View style={styles.sectionHeader}>
-    <Text style={styles.sectionTitle}>
-      {searchQuery ? `Kết quả tìm kiếm (${transactions.length})` : 'Giao dịch gần đây'}
-    </Text>
-    <View style={styles.buttonGroup}>
-      <TouchableOpacity style={styles.syncButton} onPress={() => router.push('/sync')}>
-        <Text style={styles.syncButtonText}>🔄</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.trashButton} onPress={() => router.push('/trash')}>
-        <Text style={styles.trashButtonText}>🗑️</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.addButton} onPress={handleAddPress}>
-        <Text style={styles.addButtonText}>+ Add</Text>
-      </TouchableOpacity>
-    </View>
-  </View>
+      <View style={styles.transactionListContainer}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>
+            {searchQuery 
+              ? `Kết quả tìm kiếm (${transactions.length})` 
+              : filterType === 'All' 
+                ? 'Giao dịch gần đây' 
+                : `Giao dịch ${filterType} (${transactions.length})`
+            }
+          </Text>
+          <View style={styles.buttonGroup}>
+            <TouchableOpacity style={styles.syncButton} onPress={() => router.push('/sync' as any)}>
+              <Text style={styles.syncButtonText}>🔄</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.trashButton} onPress={() => router.push('/trash')}>
+              <Text style={styles.trashButtonText}>🗑️</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.addButton} onPress={handleAddPress}>
+              <Text style={styles.addButtonText}>+ Add</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
         
         <FlatList
           data={transactions}
@@ -338,6 +386,34 @@ const styles = StyleSheet.create({
     color: '#999',
     fontWeight: 'bold',
   },
+  filterContainer: {
+    flexDirection: 'row',
+    marginHorizontal: 15,
+    marginBottom: 15,
+    gap: 10,
+  },
+  filterButton: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 20,
+    backgroundColor: '#ffffff',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#ddd',
+  },
+  filterButtonActive: {
+    backgroundColor: '#4CAF50',
+    borderColor: '#4CAF50',
+  },
+  filterButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+  },
+  filterButtonTextActive: {
+    color: '#ffffff',
+  },
   transactionListContainer: {
     flex: 1,
     paddingTop: 15,
@@ -357,6 +433,15 @@ const styles = StyleSheet.create({
   buttonGroup: {
     flexDirection: 'row',
     gap: 10,
+  },
+  syncButton: {
+    backgroundColor: '#9C27B0',
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  syncButtonText: {
+    fontSize: 16,
   },
   trashButton: {
     backgroundColor: '#F44336',
@@ -386,14 +471,5 @@ const styles = StyleSheet.create({
     color: '#999',
     fontSize: 14,
     marginTop: 20,
-  },
-  syncButton: {
-    backgroundColor: '#9C27B0',
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  syncButtonText: {
-    fontSize: 16,
   },
 });

@@ -131,5 +131,21 @@ export const searchDeletedTransactions = (keyword: string) => {
     return [];
   }
 };
+// Lọc giao dịch theo loại
+export const filterTransactionsByType = (type: 'Thu' | 'Chi' | 'All') => {
+  try {
+    if (type === 'All') {
+      return getAllTransactions();
+    }
+    const result = db.getAllSync(
+      'SELECT * FROM transactions WHERE isDeleted = 0 AND type = ? ORDER BY createdAt DESC',
+      [type]
+    );
+    return result;
+  } catch (error) {
+    console.error('Error filtering transactions:', error);
+    return [];
+  }
+};
 
 export default db;
