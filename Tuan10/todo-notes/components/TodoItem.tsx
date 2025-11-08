@@ -1,5 +1,6 @@
 import React from 'react';
-import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, Animated } from 'react-native';
+import { useEffect, useRef } from 'react';
 
 interface TodoItemProps {
   id: number;
@@ -19,8 +20,23 @@ export default function TodoItem({
   onLongPress,
 }: TodoItemProps) {
   const isDone = done === 1;
-
-  // Format ngày giờ
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+// Animation khi toggle
+  useEffect(() => {
+    Animated.sequence([
+      Animated.spring(scaleAnim, {
+        toValue: 0.95,
+        useNativeDriver: true,
+        speed: 50,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        useNativeDriver: true,
+        speed: 50,
+      }),
+    ]).start();
+  }, [done]);
+   // Format ngày giờ
   const formatDate = (timestamp: number) => {
     const date = new Date(timestamp);
     const day = date.getDate().toString().padStart(2, '0');
@@ -33,31 +49,33 @@ export default function TodoItem({
   };
 
   return (
-    <TouchableOpacity
-      style={[styles.container, isDone && styles.containerDone]}
-      onPress={onPress}
-      onLongPress={onLongPress}
-      activeOpacity={0.7}
-    >
-      <View style={styles.checkboxContainer}>
-        <View style={[styles.checkbox, isDone && styles.checkboxChecked]}>
-          {isDone && <Text style={styles.checkmark}>✓</Text>}
+    <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+      <TouchableOpacity
+        style={[styles.container, isDone && styles.containerDone]}
+        onPress={onPress}
+        onLongPress={onLongPress}
+        activeOpacity={0.7}
+      >
+        <View style={styles.checkboxContainer}>
+          <View style={[styles.checkbox, isDone && styles.checkboxChecked]}>
+            {isDone && <Text style={styles.checkmark}>✓</Text>}
+          </View>
         </View>
-      </View>
 
-      <View style={styles.contentContainer}>
-        <Text style={[styles.title, isDone && styles.titleDone]} numberOfLines={2}>
-          {title}
-        </Text>
-        <Text style={styles.date}>{formatDate(created_at)}</Text>
-      </View>
+        <View style={styles.contentContainer}>
+          <Text style={[styles.title, isDone && styles.titleDone]} numberOfLines={2}>
+            {title}
+          </Text>
+          <Text style={styles.date}>{formatDate(created_at)}</Text>
+        </View>
 
-      <View style={styles.statusBadge}>
-        <Text style={styles.statusText}>
-          {isDone ? '✓' : '○'}
-        </Text>
-      </View>
-    </TouchableOpacity>
+        <View style={styles.statusBadge}>
+          <Text style={styles.statusText}>
+            {isDone ? '✓' : '○'}
+          </Text>
+        </View>
+      </TouchableOpacity>
+    </Animated.View>
   );
 }
 

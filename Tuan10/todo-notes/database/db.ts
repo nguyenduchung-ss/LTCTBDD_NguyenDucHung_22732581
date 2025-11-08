@@ -84,5 +84,21 @@ export const addTodo = (title: string) => {
   }
 };
 
+// Toggle trạng thái done của todo
+export const toggleTodoDone = (id: number, currentDone: number) => {
+  try {
+    const newDone = currentDone === 1 ? 0 : 1;
+    const result = db.runSync(
+      'UPDATE todos SET done = ? WHERE id = ?',
+      [newDone, id]
+    );
+    console.log(`✅ Todo ${id} toggled to ${newDone === 1 ? 'done' : 'undone'}`);
+    return result.changes > 0;
+  } catch (error) {
+    console.error('❌ Error toggling todo:', error);
+    return false;
+  }
+};
+
 // Export database instance
 export default db;

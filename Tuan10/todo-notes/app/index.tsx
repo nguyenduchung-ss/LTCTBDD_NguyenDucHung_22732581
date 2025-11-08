@@ -9,7 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { getAllTodos, addTodo } from '../database/db';
+import { getAllTodos, addTodo, toggleTodoDone } from '../database/db';
 import TodoItem from '../components/TodoItem';
 import AddTodoModal from '../components/AddTodoModal';
 
@@ -53,8 +53,25 @@ export default function HomeScreen() {
   };
 
   const handleItemPress = (id: number) => {
-    console.log('Pressed item:', id);
-    // Sẽ xử lý toggle done ở câu 5
+    // Tìm todo hiện tại để lấy trạng thái done
+    const currentTodo = todos.find(todo => todo.id === id);
+    if (!currentTodo) return;
+
+    // Toggle trạng thái
+    const success = toggleTodoDone(id, currentTodo.done);
+    
+    if (success) {
+      // Cập nhật state ngay lập tức (optimistic update)
+      setTodos(prevTodos =>
+        prevTodos.map(todo =>
+          todo.id === id
+            ? { ...todo, done: todo.done === 1 ? 0 : 1 }
+            : todo
+        )
+      );
+    } else {
+      Alert.alert('Lỗi', 'Không thể cập nhật trạng thái');
+    }
   };
 
   const handleItemLongPress = (id: number) => {
