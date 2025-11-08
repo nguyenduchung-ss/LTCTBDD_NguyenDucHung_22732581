@@ -1,46 +1,118 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, StatusBar, TouchableOpacity } from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  View,
+  StatusBar,
+  FlatList,
+  TouchableOpacity,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getAllTodos } from '../database/db';
+import TodoItem from '../components/TodoItem';
+
+interface Todo {
+  id: number;
+  title: string;
+  done: number;
+  created_at: number;
+}
 
 export default function HomeScreen() {
-  const [todosCount, setTodosCount] = useState(0);
+  const [todos, setTodos] = useState<Todo[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadTodosCount();
+    loadTodos();
   }, []);
 
-  const loadTodosCount = () => {
-    const todos = getAllTodos();
-    setTodosCount(todos.length);
+  const loadTodos = () => {
+    setLoading(true);
+    try {
+      const data = getAllTodos();
+      setTodos(data as Todo[]);
+    } catch (error) {
+      console.error('Error loading todos:', error);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const handleItemPress = (id: number) => {
+    console.log('Pressed item:', id);
+    // Sẽ xử lý toggle done ở câu 5
+  };
+
+  const handleItemLongPress = (id: number) => {
+    console.log('Long pressed item:', id);
+    // Sẽ xử lý edit ở câu 6
+  };
+
+  // Tính thống kê
+  const totalTodos = todos.length;
+  const completedTodos = todos.filter(todo => todo.done === 1).length;
+  const pendingTodos = totalTodos - completedTodos;
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#6200EE" />
       
+      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>📝 Todo Notes</Text>
         <Text style={styles.headerSubtitle}>Quản lý công việc của bạn</Text>
       </View>
 
-      <View style={styles.content}>
-        <View style={styles.statusCard}>
-          <Text style={styles.statusIcon}>✅</Text>
-          <Text style={styles.statusTitle}>Database Ready</Text>
-          <Text style={styles.statusText}>Bảng "todos" đã được tạo thành công</Text>
+      {/* Statistics */}
+      <View style={styles.statsContainer}>
+        <View style={styles.statCard}>
+          <Text style={styles.statNumber}>{totalTodos}</Text>
+          <Text style={styles.statLabel}>Tổng</Text>
+        </View>
+        <View style={[styles.statCard, styles.statCardPending]}>
+          <Text style={styles.statNumber}>{pendingTodos}</Text>
+          <Text style={styles.statLabel}>Chưa xong</Text>
+        </View>
+        <View style={[styles.statCard, styles.statCardDone]}>
+          <Text style={styles.statNumber}>{completedTodos}</Text>
+          <Text style={styles.statLabel}>Hoàn thành</Text>
+        </View>
+      </View>
+
+      {/* Todo List */}
+      <View style={styles.listContainer}>
+        <View style={styles.listHeader}>
+          <Text style={styles.listTitle}>Danh sách công việc</Text>
+          <TouchableOpacity style={styles.addButton}>
+            <Text style={styles.addButtonText}>+ Thêm</Text>
+          </TouchableOpacity>
         </View>
 
-        <View style={styles.infoCard}>
-          <Text style={styles.infoIcon}>📊</Text>
-          <Text style={styles.infoTitle}>Thống kê</Text>
-          <Text style={styles.infoCount}>{todosCount}</Text>
-          <Text style={styles.infoLabel}>công việc</Text>
-        </View>
-
-        <TouchableOpacity style={styles.refreshButton} onPress={loadTodosCount}>
-          <Text style={styles.refreshButtonText}>🔄 Refresh</Text>
-        </TouchableOpacity>
+        <FlatList
+          data={todos}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={({ item }) => (
+            <TodoItem
+              id={item.id}
+              title={item.title}
+              done={item.done}
+              created_at={item.created_at}
+              onPress={() => handleItemPress(item.id)}
+              onLongPress={() => handleItemLongPress(item.id)}
+            />
+          )}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyIcon}>📝</Text>
+              <Text style={styles.emptyTitle}>Chưa có việc nào</Text>
+              <Text style={styles.emptyText}>
+                Nhấn nút "+" để thêm công việc mới
+              </Text>
+            </View>
+          }
+        />
       </View>
     </SafeAreaView>
   );
@@ -55,7 +127,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#6200EE',
     padding: 20,
     paddingTop: 30,
-    paddingBottom: 30,
+    paddingBottom: 25,
     elevation: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -75,74 +147,15 @@ const styles = StyleSheet.create({
     marginTop: 5,
     opacity: 0.9,
   },
-  content: {
+  statsContainer: {
+    flexDirection: 'row',
+    padding: 16,
+    gap: 12,
+  },
+  statCard: {
     flex: 1,
-    padding: 20,
-    justifyContent: 'center',
-  },
-  statusCard: {
     backgroundColor: '#ffffff',
-    padding: 25,
-    borderRadius: 16,
-    alignItems: 'center',
-    marginBottom: 20,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  statusIcon: {
-    fontSize: 48,
-    marginBottom: 10,
-  },
-  statusTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#4CAF50',
-    marginBottom: 8,
-  },
-  statusText: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
-  },
-  infoCard: {
-    backgroundColor: '#6200EE',
-    padding: 30,
-    borderRadius: 16,
-    alignItems: 'center',
-    marginBottom: 20,
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-  },
-  infoIcon: {
-    fontSize: 40,
-    marginBottom: 10,
-  },
-  infoTitle: {
-    fontSize: 16,
-    color: '#ffffff',
-    marginBottom: 10,
-    opacity: 0.9,
-  },
-  infoCount: {
-    fontSize: 48,
-    fontWeight: 'bold',
-    color: '#ffffff',
-    marginBottom: 5,
-  },
-  infoLabel: {
-    fontSize: 14,
-    color: '#ffffff',
-    opacity: 0.8,
-  },
-  refreshButton: {
-    backgroundColor: '#03DAC6',
-    padding: 15,
+    padding: 16,
     borderRadius: 12,
     alignItems: 'center',
     elevation: 2,
@@ -150,10 +163,75 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 2,
+    borderLeftWidth: 4,
+    borderLeftColor: '#6200EE',
   },
-  refreshButtonText: {
-    fontSize: 16,
+  statCardPending: {
+    borderLeftColor: '#FF9800',
+  },
+  statCardDone: {
+    borderLeftColor: '#4CAF50',
+  },
+  statNumber: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#666',
+  },
+  listContainer: {
+    flex: 1,
+  },
+  listHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  listTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  addButton: {
+    backgroundColor: '#03DAC6',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  addButtonText: {
+    fontSize: 14,
     fontWeight: 'bold',
     color: '#000000',
+  },
+  listContent: {
+    paddingBottom: 20,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 80,
+    paddingHorizontal: 40,
+  },
+  emptyIcon: {
+    fontSize: 80,
+    marginBottom: 16,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#666',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  emptyText: {
+    fontSize: 14,
+    color: '#999',
+    textAlign: 'center',
+    lineHeight: 20,
   },
 });
