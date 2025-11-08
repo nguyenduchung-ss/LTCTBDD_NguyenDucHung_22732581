@@ -32,8 +32,8 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
 
-  // ✅ search state cho filter realtime (Câu 8)
-  const [search, setSearch] = useState('');
+  // ✅ Thêm state cho search
+  const [searchText, setSearchText] = useState('');
 
   // edit mode
   const [editMode, setEditMode] = useState<'add' | 'edit'>('add');
@@ -44,7 +44,7 @@ export default function HomeScreen() {
     loadTodos();
   }, []);
 
-  const loadTodos = useCallback(() => {
+  const loadTodos = () => {
     setLoading(true);
     try {
       const data = getAllTodos();
@@ -54,9 +54,9 @@ export default function HomeScreen() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  };
 
-  const handleAddTodo = (title: string) => {
+  const handleAddTodo = useCallback((title: string) => {
     const result = addTodo(title);
     if (result) {
       Alert.alert('Thành công', 'Đã thêm công việc mới', [
@@ -65,59 +65,67 @@ export default function HomeScreen() {
     } else {
       Alert.alert('Lỗi', 'Không thể thêm công việc');
     }
-  };
+  }, []);
 
-  const handleItemPress = (id: number) => {
-    const currentTodo = todos.find((todo) => todo.id === id);
-    if (!currentTodo) return;
+  const handleItemPress = useCallback(
+    (id: number) => {
+      const currentTodo = todos.find((todo) => todo.id === id);
+      if (!currentTodo) return;
 
-    const success = toggleTodoDone(id, currentTodo.done);
+      const success = toggleTodoDone(id, currentTodo.done);
 
-    if (success) {
-      setTodos((prevTodos) =>
-        prevTodos.map((todo) =>
-          todo.id === id ? { ...todo, done: todo.done === 1 ? 0 : 1 } : todo
-        )
-      );
-    } else {
-      Alert.alert('Lỗi', 'Không thể cập nhật trạng thái');
-    }
-  };
+      if (success) {
+        setTodos((prevTodos) =>
+          prevTodos.map((todo) =>
+            todo.id === id ? { ...todo, done: todo.done === 1 ? 0 : 1 } : todo
+          )
+        );
+      } else {
+        Alert.alert('Lỗi', 'Không thể cập nhật trạng thái');
+      }
+    },
+    [todos]
+  );
 
-  const handleItemLongPress = (id: number) => {
-    const currentTodo = todos.find((t) => t.id === id);
-    if (!currentTodo) return;
+  const handleItemLongPress = useCallback(
+    (id: number) => {
+      const currentTodo = todos.find((t) => t.id === id);
+      if (!currentTodo) return;
 
-    setEditMode('edit');
-    setEditingId(id);
-    setEditingInitialTitle(currentTodo.title);
-    setModalVisible(true);
-  };
+      setEditMode('edit');
+      setEditingId(id);
+      setEditingInitialTitle(currentTodo.title);
+      setModalVisible(true);
+    },
+    [todos]
+  );
 
-  const handleEditSubmit = (newTitle: string) => {
-    if (editingId == null) {
-      Alert.alert('Lỗi', 'Không tìm thấy mục để cập nhật');
-      return;
-    }
+  const handleEditSubmit = useCallback(
+    (newTitle: string) => {
+      if (editingId == null) {
+        Alert.alert('Lỗi', 'Không tìm thấy mục để cập nhật');
+        return;
+      }
 
-    const success = updateTodo(editingId, newTitle);
-    if (success) {
-      setTodos((prev) =>
-        prev.map((t) => (t.id === editingId ? { ...t, title: newTitle } : t))
-      );
-      Alert.alert('Thành công', 'Đã cập nhật công việc', [
-        { text: 'OK', onPress: () => {} },
-      ]);
-    } else {
-      Alert.alert('Lỗi', 'Không thể cập nhật công việc');
-    }
+      const success = updateTodo(editingId, newTitle);
+      if (success) {
+        setTodos((prev) =>
+          prev.map((t) => (t.id === editingId ? { ...t, title: newTitle } : t))
+        );
+        Alert.alert('Thành công', 'Đã cập nhật công việc', [
+          { text: 'OK', onPress: () => {} },
+        ]);
+      } else {
+        Alert.alert('Lỗi', 'Không thể cập nhật công việc');
+      }
 
-    setEditingId(null);
-    setEditingInitialTitle('');
-    setEditMode('add');
-  };
+      setEditingId(null);
+      setEditingInitialTitle('');
+      setEditMode('add');
+    },
+    [editingId]
+  );
 
-  // ✅ Xử lý xóa công việc (Câu 7)
   const handleDeleteTodo = useCallback((id: number) => {
     Alert.alert('Xác nhận xóa', 'Bạn có chắc chắn muốn xóa công việc này?', [
       { text: 'Hủy', style: 'cancel' },
@@ -136,32 +144,17 @@ export default function HomeScreen() {
     ]);
   }, []);
 
-  // ✅ Câu 8: lọc realtime bằng useMemo
-  const filteredTodos = useMemo(() => {
-    const keyword = search.trim().toLowerCase();
-    if (keyword === '') return todos;
-    return todos.filter((t) => t.title.toLowerCase().includes(keyword));
-  }, [search, todos]);
-
   const totalTodos = todos.length;
   const completedTodos = todos.filter((todo) => todo.done === 1).length;
   const pendingTodos = totalTodos - completedTodos;
 
-  // ✅ Tối ưu renderItem bằng useCallback
-  const renderItem = useCallback(
-    ({ item }: { item: Todo }) => (
-      <TodoItem
-        id={item.id}
-        title={item.title}
-        done={item.done}
-        created_at={item.created_at}
-        onPress={() => handleItemPress(item.id)}
-        onLongPress={() => handleItemLongPress(item.id)}
-        onDelete={() => handleDeleteTodo(item.id)} // nút xóa
-      />
-    ),
-    [handleDeleteTodo]
-  );
+  // ✅ Dùng useMemo để tránh render thừa khi lọc
+  const filteredTodos = useMemo(() => {
+    const lowerSearch = searchText.toLowerCase();
+    return todos.filter((todo) =>
+      todo.title.toLowerCase().includes(lowerSearch)
+    );
+  }, [todos, searchText]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -203,26 +196,37 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* 🔍 Ô tìm kiếm realtime */}
+        {/* ✅ Ô tìm kiếm real-time */}
         <TextInput
           style={styles.searchInput}
-          placeholder="Tìm kiếm công việc..."
-          value={search}
-          onChangeText={setSearch}
+          placeholder="🔍 Tìm kiếm công việc..."
+          value={searchText}
+          onChangeText={setSearchText}
+          placeholderTextColor="#999"
         />
 
         <FlatList
-          data={filteredTodos}
+          data={filteredTodos} // ✅ hiển thị danh sách đã lọc
           keyExtractor={(item) => item.id.toString()}
-          renderItem={renderItem}
+          renderItem={({ item }) => (
+            <TodoItem
+              id={item.id}
+              title={item.title}
+              done={item.done}
+              created_at={item.created_at}
+              onPress={() => handleItemPress(item.id)}
+              onLongPress={() => handleItemLongPress(item.id)}
+              onDelete={() => handleDeleteTodo(item.id)}
+            />
+          )}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyIcon}>📝</Text>
-              <Text style={styles.emptyTitle}>Chưa có việc nào</Text>
+              <Text style={styles.emptyTitle}>Không có công việc</Text>
               <Text style={styles.emptyText}>
-                Nhấn nút "+" để thêm công việc mới
+                Gõ để tìm hoặc thêm công việc mới
               </Text>
             </View>
           }
@@ -254,10 +258,6 @@ const styles = StyleSheet.create({
     paddingTop: 30,
     paddingBottom: 25,
     elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
   },
   headerTitle: {
     fontSize: 28,
@@ -310,21 +310,20 @@ const styles = StyleSheet.create({
   addButtonText: { fontSize: 14, fontWeight: 'bold', color: '#000' },
   searchInput: {
     backgroundColor: '#fff',
-    borderRadius: 10,
     marginHorizontal: 16,
-    marginBottom: 10,
-    paddingHorizontal: 14,
+    marginBottom: 8,
+    borderRadius: 8,
+    paddingHorizontal: 12,
     paddingVertical: 10,
+    fontSize: 16,
     borderWidth: 1,
     borderColor: '#ddd',
-    fontSize: 16,
   },
   listContent: { paddingBottom: 20 },
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 80,
-    paddingHorizontal: 40,
   },
   emptyIcon: { fontSize: 80, marginBottom: 16 },
   emptyTitle: {
@@ -332,7 +331,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#666',
     marginBottom: 8,
-    textAlign: 'center',
   },
-  emptyText: { fontSize: 14, color: '#999', textAlign: 'center', lineHeight: 20 },
+  emptyText: { fontSize: 14, color: '#999', textAlign: 'center' },
 });
