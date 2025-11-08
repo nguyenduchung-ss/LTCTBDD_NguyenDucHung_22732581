@@ -36,7 +36,7 @@ export default function TodoItem({
       }),
     ]).start();
   }, [done]);
-   // Format ngày giờ
+  // Format ngày giờ
   const formatDate = (timestamp: number) => {
     const date = new Date(timestamp);
     const day = date.getDate().toString().padStart(2, '0');

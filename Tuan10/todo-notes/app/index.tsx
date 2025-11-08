@@ -1,3 +1,4 @@
+// index.tsx
 import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
@@ -9,7 +10,7 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { getAllTodos, addTodo, toggleTodoDone, updateTodo } from '../database/db';
+import { getAllTodos, addTodo, toggleTodoDone, updateTodo, deleteTodo } from '../database/db';
 import TodoItem from '../components/TodoItem';
 import AddTodoModal from '../components/AddTodoModal';
 
@@ -50,7 +51,7 @@ export default function HomeScreen() {
     const result = addTodo(title);
     if (result) {
       Alert.alert('Thành công', 'Đã thêm công việc mới', [
-        { text: 'OK', onPress: () => loadTodos() }
+        { text: 'OK', onPress: () => loadTodos() },
       ]);
     } else {
       Alert.alert('Lỗi', 'Không thể thêm công việc');
@@ -58,20 +59,14 @@ export default function HomeScreen() {
   };
 
   const handleItemPress = (id: number) => {
-    // Tìm todo hiện tại để lấy trạng thái done
     const currentTodo = todos.find(todo => todo.id === id);
     if (!currentTodo) return;
 
-    // Toggle trạng thái
     const success = toggleTodoDone(id, currentTodo.done);
-    
     if (success) {
-      // Cập nhật state ngay lập tức (optimistic update)
       setTodos(prevTodos =>
         prevTodos.map(todo =>
-          todo.id === id
-            ? { ...todo, done: todo.done === 1 ? 0 : 1 }
-            : todo
+          todo.id === id ? { ...todo, done: todo.done === 1 ? 0 : 1 } : todo
         )
       );
     } else {
@@ -80,7 +75,6 @@ export default function HomeScreen() {
   };
 
   const handleItemLongPress = (id: number) => {
-    // Mở modal edit
     const currentTodo = todos.find(t => t.id === id);
     if (!currentTodo) return;
 
@@ -98,23 +92,47 @@ export default function HomeScreen() {
 
     const success = updateTodo(editingId, newTitle);
     if (success) {
-      // Cập nhật state local ngay
       setTodos(prev =>
         prev.map(t => (t.id === editingId ? { ...t, title: newTitle } : t))
       );
-      Alert.alert('Thành công', 'Đã cập nhật công việc', [
-        { text: 'OK', onPress: () => {} }
-      ]);
+      Alert.alert('Thành công', 'Đã cập nhật công việc', [{ text: 'OK' }]);
     } else {
       Alert.alert('Lỗi', 'Không thể cập nhật công việc');
     }
-    // reset edit state
+
     setEditingId(null);
     setEditingInitialTitle('');
     setEditMode('add');
   };
 
-  // Tính thống kê
+  // ✅ Câu 7: Xóa todo có xác nhận
+  const handleDeleteTodo = (id: number) => {
+    const currentTodo = todos.find(t => t.id === id);
+    if (!currentTodo) return;
+
+    Alert.alert(
+      'Xác nhận xoá',
+      `Bạn có chắc muốn xoá công việc "${currentTodo.title}" không?`,
+      [
+        { text: 'Huỷ', style: 'cancel' },
+        {
+          text: 'Đồng ý',
+          style: 'destructive',
+          onPress: () => {
+            const success = deleteTodo(id);
+            if (success) {
+              setTodos(prev => prev.filter(t => t.id !== id));
+              Alert.alert('Đã xoá', 'Công việc đã được xoá thành công');
+            } else {
+              Alert.alert('Lỗi', 'Không thể xoá công việc');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // Thống kê
   const totalTodos = todos.length;
   const completedTodos = todos.filter(todo => todo.done === 1).length;
   const pendingTodos = totalTodos - completedTodos;
@@ -122,7 +140,7 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#6200EE" />
-      
+
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>📝 Todo Notes</Text>
@@ -149,7 +167,7 @@ export default function HomeScreen() {
       <View style={styles.listContainer}>
         <View style={styles.listHeader}>
           <Text style={styles.listTitle}>Danh sách công việc</Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.addButton}
             onPress={() => {
               setEditMode('add');
@@ -166,14 +184,22 @@ export default function HomeScreen() {
           data={todos}
           keyExtractor={(item) => item.id.toString()}
           renderItem={({ item }) => (
-            <TodoItem
-              id={item.id}
-              title={item.title}
-              done={item.done}
-              created_at={item.created_at}
-              onPress={() => handleItemPress(item.id)}
-              onLongPress={() => handleItemLongPress(item.id)}
-            />
+            <View style={styles.todoRow}>
+              <TodoItem
+                id={item.id}
+                title={item.title}
+                done={item.done}
+                created_at={item.created_at}
+                onPress={() => handleItemPress(item.id)}
+                onLongPress={() => handleItemLongPress(item.id)}
+              />
+              <TouchableOpacity
+                style={styles.deleteButton}
+                onPress={() => handleDeleteTodo(item.id)}
+              >
+                <Text style={styles.deleteText}>🗑️</Text>
+              </TouchableOpacity>
+            </View>
           )}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
@@ -189,7 +215,7 @@ export default function HomeScreen() {
         />
       </View>
 
-      {/* Add/Edit Todo Modal */}
+      {/* Add/Edit Modal */}
       <AddTodoModal
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
@@ -201,6 +227,7 @@ export default function HomeScreen() {
         initialTitle={editingInitialTitle}
         onEdit={(newTitle) => {
           handleEditSubmit(newTitle);
+          setModalVisible(false);
         }}
       />
     </SafeAreaView>
@@ -218,10 +245,6 @@ const styles = StyleSheet.create({
     paddingTop: 30,
     paddingBottom: 25,
     elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
   },
   headerTitle: {
     fontSize: 28,
@@ -248,24 +271,15 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
     borderLeftWidth: 4,
     borderLeftColor: '#6200EE',
   },
-  statCardPending: {
-    borderLeftColor: '#FF9800',
-  },
-  statCardDone: {
-    borderLeftColor: '#4CAF50',
-  },
+  statCardPending: { borderLeftColor: '#FF9800' },
+  statCardDone: { borderLeftColor: '#4CAF50' },
   statNumber: {
     fontSize: 28,
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 4,
   },
   statLabel: {
     fontSize: 12,
@@ -299,6 +313,17 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingBottom: 20,
+  },
+  todoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  deleteButton: {
+    paddingRight: 16,
+  },
+  deleteText: {
+    fontSize: 20,
+    color: '#E53935',
   },
   emptyContainer: {
     alignItems: 'center',

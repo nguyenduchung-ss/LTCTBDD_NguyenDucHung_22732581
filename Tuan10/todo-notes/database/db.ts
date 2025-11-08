@@ -115,5 +115,21 @@ export const toggleTodoDone = (id: number, currentDone: number) => {
   }
 };
 
+// Xóa todo
+export const deleteTodo = (id: number) => {
+  try {
+    const result = db.runSync(
+      'DELETE FROM todos WHERE id = ?',
+      [id]
+    );
+    console.log(`🗑️ Todo ${id} deleted, changes: ${result.changes}`);
+    return result.changes > 0;
+  } catch (error) {
+    console.error('❌ Error deleting todo:', error);
+    return false;
+  }
+};
+
+
 // Export database instance
 export default db;
