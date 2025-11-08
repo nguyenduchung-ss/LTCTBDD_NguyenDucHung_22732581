@@ -31,9 +31,8 @@ export default function HomeScreen() {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
-
-  // ✅ Thêm state cho search
   const [searchText, setSearchText] = useState('');
+  const [syncing, setSyncing] = useState(false);
 
   // edit mode
   const [editMode, setEditMode] = useState<'add' | 'edit'>('add');
@@ -56,6 +55,7 @@ export default function HomeScreen() {
     }
   };
 
+  // ✅ Thêm mới todo
   const handleAddTodo = useCallback((title: string) => {
     const result = addTodo(title);
     if (result) {
@@ -67,16 +67,16 @@ export default function HomeScreen() {
     }
   }, []);
 
+  // ✅ Toggle trạng thái done
   const handleItemPress = useCallback(
     (id: number) => {
       const currentTodo = todos.find((todo) => todo.id === id);
       if (!currentTodo) return;
 
       const success = toggleTodoDone(id, currentTodo.done);
-
       if (success) {
-        setTodos((prevTodos) =>
-          prevTodos.map((todo) =>
+        setTodos((prev) =>
+          prev.map((todo) =>
             todo.id === id ? { ...todo, done: todo.done === 1 ? 0 : 1 } : todo
           )
         );
@@ -87,11 +87,11 @@ export default function HomeScreen() {
     [todos]
   );
 
+  // ✅ Long press để sửa
   const handleItemLongPress = useCallback(
     (id: number) => {
       const currentTodo = todos.find((t) => t.id === id);
       if (!currentTodo) return;
-
       setEditMode('edit');
       setEditingId(id);
       setEditingInitialTitle(currentTodo.title);
@@ -100,6 +100,7 @@ export default function HomeScreen() {
     [todos]
   );
 
+  // ✅ Cập nhật todo
   const handleEditSubmit = useCallback(
     (newTitle: string) => {
       if (editingId == null) {
@@ -112,9 +113,7 @@ export default function HomeScreen() {
         setTodos((prev) =>
           prev.map((t) => (t.id === editingId ? { ...t, title: newTitle } : t))
         );
-        Alert.alert('Thành công', 'Đã cập nhật công việc', [
-          { text: 'OK', onPress: () => {} },
-        ]);
+        Alert.alert('Thành công', 'Đã cập nhật công việc');
       } else {
         Alert.alert('Lỗi', 'Không thể cập nhật công việc');
       }
@@ -126,6 +125,7 @@ export default function HomeScreen() {
     [editingId]
   );
 
+  // ✅ Xóa todo
   const handleDeleteTodo = useCallback((id: number) => {
     Alert.alert('Xác nhận xóa', 'Bạn có chắc chắn muốn xóa công việc này?', [
       { text: 'Hủy', style: 'cancel' },
@@ -144,11 +144,51 @@ export default function HomeScreen() {
     ]);
   }, []);
 
+  // ✅ Đồng bộ từ API Mock
+  const handleSyncAPI = useCallback(async () => {
+    setSyncing(true);
+    try {
+      const response = await fetch(
+        'https://690ed92abd0fefc30a05b8fc.mockapi.io/api/todo/todos'
+      );
+      if (!response.ok) throw new Error('Fetch thất bại');
+      const apiTodos = await response.json();
+
+      const currentTitles = new Set(
+        todos.map((t) => t.title.trim().toLowerCase())
+      );
+
+      for (const item of apiTodos) {
+        const title = (item.title || item.text || '').trim();
+        if (!title || currentTitles.has(title.toLowerCase())) continue;
+        await addTodo(title);
+        currentTitles.add(title.toLowerCase());
+      }
+
+      loadTodos();
+      return true;
+    } catch (error) {
+      console.error('Sync error:', error);
+      return false;
+    } finally {
+      setSyncing(false);
+    }
+  }, [todos]);
+
+  const onSync = async () => {
+    const ok = await handleSyncAPI();
+    if (ok) {
+      Alert.alert('Đồng bộ thành công', 'Đã thêm các công việc mới từ API!');
+    } else {
+      Alert.alert('Lỗi', 'Không thể đồng bộ dữ liệu từ API.');
+    }
+  };
+
   const totalTodos = todos.length;
   const completedTodos = todos.filter((todo) => todo.done === 1).length;
   const pendingTodos = totalTodos - completedTodos;
 
-  // ✅ Dùng useMemo để tránh render thừa khi lọc
+  // ✅ Lọc real-time (useMemo để tránh re-render)
   const filteredTodos = useMemo(() => {
     const lowerSearch = searchText.toLowerCase();
     return todos.filter((todo) =>
@@ -165,6 +205,7 @@ export default function HomeScreen() {
         <Text style={styles.headerSubtitle}>Quản lý công việc của bạn</Text>
       </View>
 
+      {/* ✅ Thống kê */}
       <View style={styles.statsContainer}>
         <View style={styles.statCard}>
           <Text style={styles.statNumber}>{totalTodos}</Text>
@@ -180,9 +221,19 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      <View style={styles.listContainer}>
-        <View style={styles.listHeader}>
-          <Text style={styles.listTitle}>Danh sách công việc</Text>
+      {/* ✅ Thanh tiêu đề + nút thêm + nút đồng bộ */}
+      <View style={styles.listHeader}>
+        <Text style={styles.listTitle}>Danh sách công việc</Text>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <TouchableOpacity
+            style={[styles.syncButton, syncing && { opacity: 0.6 }]}
+            onPress={onSync}
+            disabled={syncing}
+          >
+            <Text style={styles.syncButtonText}>
+              {syncing ? 'Đang...' : 'Đồng bộ'}
+            </Text>
+          </TouchableOpacity>
           <TouchableOpacity
             style={styles.addButton}
             onPress={() => {
@@ -195,44 +246,46 @@ export default function HomeScreen() {
             <Text style={styles.addButtonText}>+ Thêm</Text>
           </TouchableOpacity>
         </View>
-
-        {/* ✅ Ô tìm kiếm real-time */}
-        <TextInput
-          style={styles.searchInput}
-          placeholder="🔍 Tìm kiếm công việc..."
-          value={searchText}
-          onChangeText={setSearchText}
-          placeholderTextColor="#999"
-        />
-
-        <FlatList
-          data={filteredTodos} // ✅ hiển thị danh sách đã lọc
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item }) => (
-            <TodoItem
-              id={item.id}
-              title={item.title}
-              done={item.done}
-              created_at={item.created_at}
-              onPress={() => handleItemPress(item.id)}
-              onLongPress={() => handleItemLongPress(item.id)}
-              onDelete={() => handleDeleteTodo(item.id)}
-            />
-          )}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyIcon}>📝</Text>
-              <Text style={styles.emptyTitle}>Không có công việc</Text>
-              <Text style={styles.emptyText}>
-                Gõ để tìm hoặc thêm công việc mới
-              </Text>
-            </View>
-          }
-        />
       </View>
 
+      {/* ✅ Ô tìm kiếm */}
+      <TextInput
+        style={styles.searchInput}
+        placeholder="🔍 Tìm kiếm công việc..."
+        value={searchText}
+        onChangeText={setSearchText}
+        placeholderTextColor="#999"
+      />
+
+      {/* ✅ Danh sách */}
+      <FlatList
+        data={filteredTodos}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={({ item }) => (
+          <TodoItem
+            id={item.id}
+            title={item.title}
+            done={item.done}
+            created_at={item.created_at}
+            onPress={() => handleItemPress(item.id)}
+            onLongPress={() => handleItemLongPress(item.id)}
+            onDelete={() => handleDeleteTodo(item.id)}
+          />
+        )}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyIcon}>📝</Text>
+            <Text style={styles.emptyTitle}>Không có công việc</Text>
+            <Text style={styles.emptyText}>
+              Gõ để tìm hoặc nhấn "Đồng bộ" để tải từ API
+            </Text>
+          </View>
+        }
+      />
+
+      {/* ✅ Modal thêm/sửa */}
       <AddTodoModal
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
@@ -285,14 +338,8 @@ const styles = StyleSheet.create({
   },
   statCardPending: { borderLeftColor: '#FF9800' },
   statCardDone: { borderLeftColor: '#4CAF50' },
-  statNumber: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 4,
-  },
+  statNumber: { fontSize: 28, fontWeight: 'bold', color: '#333', marginBottom: 4 },
   statLabel: { fontSize: 12, color: '#666' },
-  listContainer: { flex: 1 },
   listHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -308,6 +355,13 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   addButtonText: { fontSize: 14, fontWeight: 'bold', color: '#000' },
+  syncButton: {
+    backgroundColor: '#FFB300',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  syncButtonText: { color: '#fff', fontWeight: 'bold', fontSize: 13 },
   searchInput: {
     backgroundColor: '#fff',
     marginHorizontal: 16,
