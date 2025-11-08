@@ -68,5 +68,21 @@ export const getAllTodos = () => {
   }
 };
 
+// Thêm todo mới
+export const addTodo = (title: string) => {
+  try {
+    const created_at = Date.now();
+    const result = db.runSync(
+      'INSERT INTO todos (title, done, created_at) VALUES (?, ?, ?)',
+      [title, 0, created_at]
+    );
+    console.log('✅ Todo added successfully:', result.lastInsertRowId);
+    return result.lastInsertRowId;
+  } catch (error) {
+    console.error('❌ Error adding todo:', error);
+    return null;
+  }
+};
+
 // Export database instance
 export default db;

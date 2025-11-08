@@ -6,10 +6,12 @@ import {
   StatusBar,
   FlatList,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { getAllTodos } from '../database/db';
+import { getAllTodos, addTodo } from '../database/db';
 import TodoItem from '../components/TodoItem';
+import AddTodoModal from '../components/AddTodoModal';
 
 interface Todo {
   id: number;
@@ -21,6 +23,7 @@ interface Todo {
 export default function HomeScreen() {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [modalVisible, setModalVisible] = useState(false);
 
   useEffect(() => {
     loadTodos();
@@ -35,6 +38,17 @@ export default function HomeScreen() {
       console.error('Error loading todos:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAddTodo = (title: string) => {
+    const result = addTodo(title);
+    if (result) {
+      Alert.alert('Thành công', 'Đã thêm công việc mới', [
+        { text: 'OK', onPress: () => loadTodos() }
+      ]);
+    } else {
+      Alert.alert('Lỗi', 'Không thể thêm công việc');
     }
   };
 
@@ -83,7 +97,10 @@ export default function HomeScreen() {
       <View style={styles.listContainer}>
         <View style={styles.listHeader}>
           <Text style={styles.listTitle}>Danh sách công việc</Text>
-          <TouchableOpacity style={styles.addButton}>
+          <TouchableOpacity 
+            style={styles.addButton}
+            onPress={() => setModalVisible(true)}
+          >
             <Text style={styles.addButtonText}>+ Thêm</Text>
           </TouchableOpacity>
         </View>
@@ -114,6 +131,13 @@ export default function HomeScreen() {
           }
         />
       </View>
+
+      {/* Add Todo Modal */}
+      <AddTodoModal
+        visible={modalVisible}
+        onClose={() => setModalVisible(false)}
+        onAdd={handleAddTodo}
+      />
     </SafeAreaView>
   );
 }
