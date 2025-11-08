@@ -9,7 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { getAllTodos, addTodo, toggleTodoDone } from '../database/db';
+import { getAllTodos, addTodo, toggleTodoDone, updateTodo } from '../database/db';
 import TodoItem from '../components/TodoItem';
 import AddTodoModal from '../components/AddTodoModal';
 
@@ -24,6 +24,11 @@ export default function HomeScreen() {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
+
+  // edit mode
+  const [editMode, setEditMode] = useState<'add' | 'edit'>('add');
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingInitialTitle, setEditingInitialTitle] = useState<string>('');
 
   useEffect(() => {
     loadTodos();
@@ -75,8 +80,38 @@ export default function HomeScreen() {
   };
 
   const handleItemLongPress = (id: number) => {
-    console.log('Long pressed item:', id);
-    // Sẽ xử lý edit ở câu 6
+    // Mở modal edit
+    const currentTodo = todos.find(t => t.id === id);
+    if (!currentTodo) return;
+
+    setEditMode('edit');
+    setEditingId(id);
+    setEditingInitialTitle(currentTodo.title);
+    setModalVisible(true);
+  };
+
+  const handleEditSubmit = (newTitle: string) => {
+    if (editingId == null) {
+      Alert.alert('Lỗi', 'Không tìm thấy mục để cập nhật');
+      return;
+    }
+
+    const success = updateTodo(editingId, newTitle);
+    if (success) {
+      // Cập nhật state local ngay
+      setTodos(prev =>
+        prev.map(t => (t.id === editingId ? { ...t, title: newTitle } : t))
+      );
+      Alert.alert('Thành công', 'Đã cập nhật công việc', [
+        { text: 'OK', onPress: () => {} }
+      ]);
+    } else {
+      Alert.alert('Lỗi', 'Không thể cập nhật công việc');
+    }
+    // reset edit state
+    setEditingId(null);
+    setEditingInitialTitle('');
+    setEditMode('add');
   };
 
   // Tính thống kê
@@ -116,7 +151,12 @@ export default function HomeScreen() {
           <Text style={styles.listTitle}>Danh sách công việc</Text>
           <TouchableOpacity 
             style={styles.addButton}
-            onPress={() => setModalVisible(true)}
+            onPress={() => {
+              setEditMode('add');
+              setEditingId(null);
+              setEditingInitialTitle('');
+              setModalVisible(true);
+            }}
           >
             <Text style={styles.addButtonText}>+ Thêm</Text>
           </TouchableOpacity>
@@ -149,11 +189,19 @@ export default function HomeScreen() {
         />
       </View>
 
-      {/* Add Todo Modal */}
+      {/* Add/Edit Todo Modal */}
       <AddTodoModal
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
-        onAdd={handleAddTodo}
+        onAdd={(title) => {
+          handleAddTodo(title);
+          setModalVisible(false);
+        }}
+        mode={editMode}
+        initialTitle={editingInitialTitle}
+        onEdit={(newTitle) => {
+          handleEditSubmit(newTitle);
+        }}
       />
     </SafeAreaView>
   );

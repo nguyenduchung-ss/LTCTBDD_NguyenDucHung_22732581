@@ -84,6 +84,21 @@ export const addTodo = (title: string) => {
   }
 };
 
+// Cập nhật title của todo (EDIT)
+export const updateTodo = (id: number, title: string) => {
+  try {
+    const result = db.runSync(
+      'UPDATE todos SET title = ? WHERE id = ?',
+      [title, id]
+    );
+    console.log(`✅ Todo ${id} updated, changes: ${result.changes}`);
+    return result.changes > 0;
+  } catch (error) {
+    console.error('❌ Error updating todo:', error);
+    return false;
+  }
+};
+
 // Toggle trạng thái done của todo
 export const toggleTodoDone = (id: number, currentDone: number) => {
   try {

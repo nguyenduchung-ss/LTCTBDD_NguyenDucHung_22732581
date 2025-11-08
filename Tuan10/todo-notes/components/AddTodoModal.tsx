@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
@@ -14,24 +14,52 @@ import {
 interface AddTodoModalProps {
   visible: boolean;
   onClose: () => void;
-  onAdd: (title: string) => void;
+  onAdd?: (title: string) => void;
+  // thêm cho edit
+  mode?: 'add' | 'edit';
+  initialTitle?: string;
+  onEdit?: (title: string) => void;
 }
 
-export default function AddTodoModal({ visible, onClose, onAdd }: AddTodoModalProps) {
+export default function AddTodoModal({
+  visible,
+  onClose,
+  onAdd,
+  mode = 'add',
+  initialTitle = '',
+  onEdit,
+}: AddTodoModalProps) {
   const [title, setTitle] = useState('');
   const inputRef = useRef<TextInput>(null);
 
-  const handleAdd = () => {
-    // Validate: title không rỗng
+  // Khi modal mở cho edit, set title = initialTitle
+  useEffect(() => {
+    if (visible) {
+      setTitle(initialTitle ?? '');
+      // focus sau một tick
+      setTimeout(() => inputRef.current?.focus(), 300);
+    } else {
+      // khi đóng reset
+      setTitle('');
+    }
+  }, [visible, initialTitle]);
+
+  const handleSave = () => {
     if (!title.trim()) {
       Alert.alert('Lỗi', 'Vui lòng nhập tiêu đề công việc');
       return;
     }
 
-    // Gọi callback để thêm todo
-    onAdd(title.trim());
+    if (mode === 'add') {
+      if (!onAdd) return;
+      onAdd(title.trim());
+    } else {
+      // edit
+      if (!onEdit) return;
+      onEdit(title.trim());
+    }
 
-    // Clear input và đóng modal
+    // Clear and close
     setTitle('');
     inputRef.current?.clear();
     onClose();
@@ -62,7 +90,9 @@ export default function AddTodoModal({ visible, onClose, onAdd }: AddTodoModalPr
           <View style={styles.modalContainer} onStartShouldSetResponder={() => true}>
             {/* Header */}
             <View style={styles.header}>
-              <Text style={styles.headerTitle}>➕ Thêm công việc mới</Text>
+              <Text style={styles.headerTitle}>
+                {mode === 'add' ? '➕ Thêm công việc mới' : '✏️ Chỉnh sửa công việc'}
+              </Text>
             </View>
 
             {/* Content */}
@@ -94,9 +124,11 @@ export default function AddTodoModal({ visible, onClose, onAdd }: AddTodoModalPr
 
               <TouchableOpacity
                 style={[styles.button, styles.addButton]}
-                onPress={handleAdd}
+                onPress={handleSave}
               >
-                <Text style={styles.addButtonText}>Thêm</Text>
+                <Text style={styles.addButtonText}>
+                  {mode === 'add' ? 'Thêm' : 'Lưu'}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
