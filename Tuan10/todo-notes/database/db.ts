@@ -3,16 +3,70 @@ import * as SQLite from 'expo-sqlite';
 // Mở kết nối database
 const db = SQLite.openDatabaseSync('todos.db');
 
-// Export database instance
-export default db;
-
-// Hàm kiểm tra kết nối
-export const testConnection = () => {
+// Khởi tạo database
+export const initDatabase = () => {
   try {
-    console.log('✅ Database connection established');
+    // Tạo bảng todos nếu chưa có
+    db.execSync(`
+      CREATE TABLE IF NOT EXISTS todos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        done INTEGER DEFAULT 0,
+        created_at INTEGER
+      );
+    `);
+    
+    console.log('✅ Table "todos" created successfully');
+    
+    // Kiểm tra xem bảng có dữ liệu chưa
+    const count = db.getFirstSync('SELECT COUNT(*) as count FROM todos');
+    const totalRecords = (count as any).count;
+    
+    console.log(`📊 Current todos count: ${totalRecords}`);
+    
+    // Seed data nếu bảng trống
+    if (totalRecords === 0) {
+      seedData();
+    }
+    
     return true;
   } catch (error) {
-    console.error('❌ Database connection failed:', error);
+    console.error('❌ Error initializing database:', error);
     return false;
   }
 };
+
+// Seed dữ liệu mẫu
+const seedData = () => {
+  try {
+    const now = Date.now();
+    
+    db.runSync(
+      'INSERT INTO todos (title, done, created_at) VALUES (?, ?, ?)',
+      ['Học React Native', 0, now]
+    );
+    
+    db.runSync(
+      'INSERT INTO todos (title, done, created_at) VALUES (?, ?, ?)',
+      ['Hoàn thành bài tập', 0, now + 1000]
+    );
+    
+    console.log('✅ Seed data inserted successfully');
+  } catch (error) {
+    console.error('❌ Error seeding data:', error);
+  }
+};
+
+// Lấy tất cả todos
+export const getAllTodos = () => {
+  try {
+    const result = db.getAllSync('SELECT * FROM todos ORDER BY created_at DESC');
+    return result;
+  } catch (error) {
+    console.error('Error getting todos:', error);
+    return [];
+  }
+};
+
+// Export database instance
+export default db;

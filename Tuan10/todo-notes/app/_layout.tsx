@@ -1,11 +1,16 @@
 import { Stack } from 'expo-router';
 import { useEffect } from 'react';
-import { testConnection } from '../database/db';
+import { initDatabase } from '../database/db';
 
 export default function RootLayout() {
   useEffect(() => {
-    // Test database connection khi app start
-    testConnection();
+    // Khởi tạo database khi app start
+    const success = initDatabase();
+    if (success) {
+      console.log('🎉 Database initialized and ready');
+    } else {
+      console.error('💥 Failed to initialize database');
+    }
   }, []);
 
   return (
